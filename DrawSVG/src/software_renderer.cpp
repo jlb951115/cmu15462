@@ -615,14 +615,33 @@ void SoftwareRendererImp::rasterize_image( float x0, float y0,
   // Task 6: 
   // Implement image rasterization
   float u_scale = tex.width / (x1 - x0);
-  float v_scale = tex.height / (y1 - y0);
-  for (float x = x0 ; x <= x1; x++)
+  float v_scale = tex.width / (y1 - y0);
+  if (this->sample_rate == 1)
   {
-    for (float y = y0; y <= y1; y++)
+    for (float x = x0; x <= x1; x++)
     {
-      float u = abs(x - x0) / (x1 - x0);
-      float v = abs(y - y0) / (y1 - y0);
-      rasterize_point(x, y, this->sampler->sample_trilinear(tex, u, v, u_scale, v_scale));
+      for (float y = y0; y <= y1; y++)
+      {
+        float u = abs(x - x0) / (x1 - x0);
+        float v = abs(y - y0) / (y1 - y0);
+        rasterize_point(x, y, this->sampler->sample_trilinear(tex, u, v, u_scale, v_scale));
+      }
+    }
+  }
+  else
+  {
+    float x_0 = x0 * this->sample_rate;
+    float x_1 = x1 * this->sample_rate;
+    float y_0 = y0 * this->sample_rate;
+    float y_1 = y1 * this->sample_rate;
+    for (float x = x_0; x <= x_1; x++)
+    {
+      for (float y = y_0; y <= y_1; y++)
+      {
+        float u = abs(x - x_0) / (x_1 - x_0);
+        float v = abs(y - y_0) / (y_1 - y_0);
+        fill_sample(x, y, this->sampler->sample_trilinear(tex, u, v, u_scale, v_scale));
+      }
     }
   }
 }
@@ -676,10 +695,22 @@ void SoftwareRendererImp::fill_sample(int x, int y, const Color& c)
 {
   if (x < 0 || x >= this->w) return;
   if (y < 0 || y >= this->h) return;
-  sample_buffer[4 * (x + y * w)] = (uint8_t) (c.r * 255.0);
-  sample_buffer[4 * (x + y * w) + 1] = (uint8_t) (c.g * 255.0);
-  sample_buffer[4 * (x + y * w) + 2] = (uint8_t) (c.b * 255.0);
-  sample_buffer[4 * (x + y * w) + 3] = (uint8_t) (c.a * 255.0);
+  float rb = c.r;
+  float gb = c.g;
+  float bb = c.b;
+  float ab = c.a;
+  float ra = sample_buffer[4 * (x + y * w)] / 255.0f;
+  float ga = sample_buffer[4 * (x + y * w) + 1] / 255.0f;
+  float ba = sample_buffer[4 * (x + y * w) + 2] / 255.0f;
+  float aa = sample_buffer[4 * (x + y * w) + 3] / 255.0f;
+  float rc = rb * ab + (1 - ab) * aa * ra;
+  float gc = gb * ab + (1 - ab) * aa * ga;
+  float bc = bb * ab + (1 - ab) * aa * ba;
+  float ac = ab + (1 - ab) * aa;
+  sample_buffer[4 * (x + y * w)] = (uint8_t) (rc * 255.0);
+  sample_buffer[4 * (x + y * w) + 1] = (uint8_t) (gc * 255.0);
+  sample_buffer[4 * (x + y * w) + 2] = (uint8_t) (bc * 255.0);
+  sample_buffer[4 * (x + y * w) + 3] = (uint8_t) (ac * 255.0);
 }
 
 void SoftwareRendererImp::fill_pixel(int x, int y, const Color& c)
