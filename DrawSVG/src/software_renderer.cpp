@@ -244,23 +244,27 @@ void SoftwareRendererImp::rasterize_point( float x, float y, Color color ) {
   if ( sy < 0 || sy >= target_h ) return;
 
   // fill sample - NOT doing alpha blending!
-  float rb = color.r;
-  float gb = color.g;
-  float bb = color.b;
-  float ab = color.a;
-  float ra = render_target[4 * (sx + sy * target_w)] / 255.0f;
-  float ga = render_target[4 * (sx + sy * target_w) + 1] / 255.0f;
-  float ba = render_target[4 * (sx + sy * target_w) + 2] / 255.0f;
-  float aa = render_target[4 * (sx + sy * target_w) + 3] / 255.0f;
-  float rc = rb * ab + (1 - ab) * aa * ra;
-  float gc = gb * ab + (1 - ab) * aa * ga;
-  float bc = bb * ab + (1 - ab) * aa * ba;
-  float ac = ab + (1 - ab) * aa;
-  render_target[4 * (sx + sy * target_w)] = (uint8_t) (rc * 255);
-  render_target[4 * (sx + sy * target_w) + 1] = (uint8_t) (gc * 255);
-  render_target[4 * (sx + sy * target_w) + 2] = (uint8_t) (bc * 255);
-  render_target[4 * (sx + sy * target_w) + 3] = (uint8_t) (ac * 255);
-
+  if (this->sample_rate == 1)
+  {
+     float rb = color.r;
+     float gb = color.g;
+     float bb = color.b;
+     float ab = color.a;
+     float ra = render_target[4 * (sx + sy * target_w)] / 255.0f;
+     float ga = render_target[4 * (sx + sy * target_w) + 1] / 255.0f;
+     float ba = render_target[4 * (sx + sy * target_w) + 2] / 255.0f;
+     float aa = render_target[4 * (sx + sy * target_w) + 3] / 255.0f;
+     float rc = rb * ab + (1 - ab) * aa * ra;
+     float gc = gb * ab + (1 - ab) * aa * ga;
+     float bc = bb * ab + (1 - ab) * aa * ba;
+     float ac = ab + (1 - ab) * aa;
+     render_target[4 * (sx + sy * target_w)] = (uint8_t) (rc * 255);
+     render_target[4 * (sx + sy * target_w) + 1] = (uint8_t) (gc * 255);
+     render_target[4 * (sx + sy * target_w) + 2] = (uint8_t) (bc * 255);
+     render_target[4 * (sx + sy * target_w) + 3] = (uint8_t) (ac * 255);
+  }
+  else
+      fill_pixel(sx, sy, color);
 }
 
 void SoftwareRendererImp::rasterize_line( float x0, float y0,
